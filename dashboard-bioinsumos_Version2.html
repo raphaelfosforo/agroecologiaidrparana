@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Diagnóstico Estadual de Bioinsumos — Paraná</title>
+  <style>
+    :root {
+      --green: #278c55;
+      --blue: #2863a5;
+      --ink: #26332d;
+      --muted: #64736b;
+      --line: #e2e8e4;
+      --bg: #f5f7f5;
+      --white: #fff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    header {
+      padding: 28px max(20px, calc((100% - 1180px) / 2));
+      background: #fff;
+    }
+    header h1 {
+      margin: 0;
+      padding: 9px 16px;
+      border-radius: 9px;
+      background: #d3d3d3;
+      box-shadow: 0 2px 5px #0002;
+      font-size: clamp(22px, 3.5vw, 30px);
+    }
+    header p { margin: 10px 0 0; color: var(--muted); }
+    main { max-width: 1180px; margin: 20px auto; padding: 0 18px 32px; }
+    .filters, .panel, .table-panel, .note {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--white);
+      box-shadow: 0 3px 12px #163c2910;
+    }
+    .filters {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.3fr auto;
+      gap: 12px;
+      align-items: end;
+      padding: 15px;
+      margin-bottom: 16px;
+    }
+    label { color: var(--muted); font-size: 12px; font-weight: 700; }
+    select, input, button {
+      width: 100%;
+      height: 40px;
+      margin-top: 5px;
+      padding: 0 10px;
+      border: 1px solid #d5dfd9;
+      border-radius: 8px;
+      background: white;
+      color: var(--ink);
+      font: inherit;
+    }
+    button {
+      width: auto;
+      min-width: 92px;
+      border-color: var(--blue);
+      background: var(--blue);
+      color: white;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    button:hover { filter: brightness(.9); }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    .metric {
+      min-height: 100px;
+      padding: 16px;
+      border-radius: 14px;
+      background: var(--blue);
+      box-shadow: 0 3px 6px #0003;
+      color: #fff;
+      text-align: center;
+    }
+    .metric:nth-child(2) { background: var(--green); }
+    .metric-label { font-size: 13px; }
+    .metric-value { margin: 2px 0; font-size: 30px; font-weight: 800; }
+    .metric-detail { color: #ffffffdc; font-size: 11px; }
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .panel { padding: 18px; min-width: 0; }
+    .panel h2 { margin: 0; font-size: 18px; }
+    .panel .subtitle { margin: 3px 0 16px; color: var(--muted); font-size: 12px; }
+    .bars { display: grid; gap: 10px; }
+    .bar-row {
+      display: grid;
+      grid-template-columns: minmax(100px, 150px) 1fr 28px;
+      gap: 9px;
+      align-items: center;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bar-track { height: 15px; overflow: hidden; border-radius: 20px; background: #edf1ee; }
+    .bar-fill { height: 100%; border-radius: inherit; background: #61a1d6; }
+    #chainChart .bar-fill { background: #38a263; }
+    .bar-value { color: var(--muted); text-align: right; }
+    .bar-row:hover .bar-label { color: var(--blue); text-decoration: underline; }
+    .coverage { margin-top: 16px; }
+    .coverage h3 { margin: 0 0 9px; font-size: 14px; }
+    .coverage-row {
+      display: grid;
+      grid-template-columns: minmax(115px, 1.3fr) 1fr 45px;
+      gap: 8px;
+      align-items: center;
+      margin: 7px 0;
+      font-size: 11px;
+    }
+    .coverage-track { height: 10px; border-radius: 10px; background: #edf1ee; }
+    .coverage-fill { height: 100%; border-radius: inherit; background: var(--green); }
+    .coverage-value { text-align: right; color: var(--muted); }
+    .table-panel { overflow: hidden; }
+    .table-title { padding: 16px 18px 10px; }
+    .table-title h2 { margin: 0; font-size: 17px; }
+    .table-title p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th, td { padding: 10px 18px; border-top: 1px solid var(--line); vertical-align: top; }
+    th {
+      background: #fafbfa;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    td { font-size: 13px; }
+    .tag {
+      display: inline-block;
+      margin: 2px 3px 2px 0;
+      padding: 2px 8px;
+      border-radius: 14px;
+      background: #e8f4ec;
+      color: #17653b;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+    .empty { padding: 24px; color: var(--muted); text-align: center; }
+    .note { margin-top: 14px; padding: 14px 16px; color: var(--muted); font-size: 12px; }
+    @media (max-width: 760px) {
+      .filters { grid-template-columns: 1fr 1fr; }
+      .dashboard-grid { grid-template-columns: 1fr; }
+      .metrics { gap: 9px; }
+    }
+    @media (max-width: 480px) {
+      .filters { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: 1fr; }
+      .metric { min-height: 80px; }
+      .bar-row { grid-template-columns: 112px 1fr 24px; }
+      th, td { padding: 9px 11px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Diagnóstico Estadual de Bioinsumos</h1>
+    <p>Regionais participantes, técnicos citados e cadeias produtivas com uso de bioinsumos.</p>
+  </header>
+
+  <main>
+    <section class="filters" aria-label="Filtros">
+      <label>Região
+        <select id="regionFilter"><option value="">Todas as regiões</option></select>
+      </label>
+      <label>Regional
+        <select id="regionalFilter"><option value="">Todas as Regionais</option></select>
+      </label>
+      <label>Buscar
+        <input id="searchFilter" type="search" placeholder="Buscar região ou Regional">
+      </label>
+      <button id="clearButton" type="button">Limpar</button>
+    </section>
+
+    <section class="metrics" aria-label="Indicadores">
+      <article class="metric">
+        <div class="metric-label">Respostas consideradas por Regional</div>
+        <div class="metric-value" id="regionalCount">—</div>
+        <div class="metric-detail">Regionais distintas no filtro</div>
+      </article>
+      <article class="metric">
+        <div class="metric-label">Regiões representadas</div>
+        <div class="metric-value" id="regionCount">—</div>
+        <div class="metric-detail">das 7 regiões consideradas</div>
+      </article>
+      <article class="metric">
+        <div class="metric-label">Técnicos citados</div>
+        <div class="metric-value" id="technicianCount">—</div>
+        <div class="metric-detail">total de referência exibido no painel</div>
+      </article>
+    </section>
+
+    <section class="dashboard-grid">
+      <article class="panel">
+        <h2>Técnicos com atuação em Bioinsumos por Região</h2>
+        <p class="subtitle">Valores de técnicos citados conforme o painel de referência. Clique na barra para filtrar.</p>
+        <div class="bars" id="technicianChart"></div>
+        <div class="coverage">
+          <h3>Regionais respondentes / Regionais na região</h3>
+          <div id="coverageChart"></div>
+        </div>
+      </article>
+
+      <article class="panel">
+        <h2>Cadeias produtivas que utilizam bioinsumos</h2>
+        <p class="subtitle">Contagem de Regionais únicas que citaram cada cadeia. Clique na barra para filtrar a lista.</p>
+        <div class="bars" id="chainChart"></div>
+      </article>
+    </section>
+
+    <section class="table-panel">
+      <div class="table-title">
+        <h2>Regionais consideradas</h2>
+        <p id="tableSummary"></p>
+      </div>
+      <div class="table-wrap" id="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Regional</th>
+              <th>Região</th>
+              <th>Cadeias produtivas citadas</th>
+              <th>Interesse</th>
+            </tr>
+          </thead>
+          <tbody id="results"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="emptyState" hidden>Nenhuma Regional corresponde aos filtros.</div>
+    </section>
+
+    <aside class="note">
+      <strong>Critérios:</strong> foram consideradas somente as 7 regiões da planilha VBP 2025:
+      Metropolitana e Litoral, Centro Sul, Norte, Noroeste, Centro, Oeste e Sudoeste.
+      O número 16 conta Regionais distintas; o formulário contém 18 registros porque Campo Mourão e
+      Santo Antônio da Platina responderam duas vezes. Para cadeias produtivas, respostas repetidas da
+      mesma Regional foram consolidadas. Os valores de técnicos por região são os mostrados na imagem
+      de referência; o material fornecido não detalha a divisão desses técnicos por Regional individual.
+    </aside>
+  </main>
+
+  <script>
+    // Uma entrada por Regional; duplicidades do formulário foram consolidadas.
+    const regionals = [
+      {name:"Metropolitana Curitiba", region:"Metropolitana e Litoral",
+       chains:["Olericultura","Fruticultura"], interest:true},
+      {name:"Paranaguá", region:"Metropolitana e Litoral",
+       chains:["Olericultura","Fruticultura","Palmáceas"], interest:true},
+
+      {name:"Ponta Grossa", region:"Centro Sul",
+       chains:["Olericultura","Fruticultura"], interest:true},
+      {name:"Irati", region:"Centro Sul",
+       chains:["Olericultura","Fruticultura","Feijão","Milho","Soja"], interest:true},
+
+      {name:"Apucarana", region:"Norte",
+       chains:["Olericultura","Fruticultura","Bovinocultura de leite","Piscicultura"], interest:true},
+      {name:"Londrina", region:"Norte",
+       chains:["Olericultura","Fruticultura"], interest:true},
+      {name:"Cornélio Procópio", region:"Norte",
+       chains:["Olericultura"], interest:true},
+      {name:"Santo Antônio da Platina", region:"Norte",
+       chains:["Olericultura","Fruticultura"], interest:true},
+
+      {name:"Campo Mourão", region:"Noroeste",
+       chains:["Olericultura","Fruticultura","Soja","Bovinocultura de leite"], interest:true},
+      {name:"Paranavaí", region:"Noroeste",
+       chains:["Olericultura","Fruticultura"], interest:true},
+      {name:"Umuarama", region:"Noroeste",
+       chains:["Olericultura","Fruticultura"], interest:true},
+      {name:"Maringá", region:"Noroeste",
+       chains:["Olericultura","Fruticultura"], interest:true},
+
+      {name:"Guarapuava", region:"Centro",
+       chains:["Olericultura","Fruticultura","Feijão","Milho","Soja","Bovinocultura de leite"], interest:true},
+      {name:"Laranjeiras do Sul", region:"Centro",
+       chains:["Olericultura","Fruticultura","Feijão","Milho","Soja"], interest:true},
+
+      {name:"Cascavel", region:"Oeste",
+       chains:["Olericultura","Fruticultura","Milho","Soja"], interest:true},
+
+      {name:"Francisco Beltrão", region:"Sudoeste",
+       chains:["Olericultura","Fruticultura"], interest:true}
+    ];
+
+    // Totais do gráfico de técnicos transcritos da imagem de referência.
+    const techniciansByRegion = {
+      "Metropolitana e Litoral": 7,
+      "Centro Sul": 11,
+      "Norte": 26,
+      "Noroeste": 11,
+      "Centro": 6,
+      "Oeste": 7,
+      "Sudoeste": 0
+    };
+
+    // Cobertura transcrita da coluna "Resposta" da imagem: respondentes / Regionais.
+    const coverage = [
+      {region:"Metropolitana e Litoral", answered:2, total:2},
+      {region:"Centro Sul", answered:2, total:3},
+      {region:"Norte", answered:4, total:5},
+      {region:"Noroeste", answered:3, total:4},
+      {region:"Centro", answered:2, total:3},
+      {region:"Oeste", answered:2, total:3},
+      {region:"Sudoeste", answered:1, total:3}
+    ];
+
+    const regionFilter = document.getElementById("regionFilter");
+    const regionalFilter = document.getElementById("regionalFilter");
+    const searchFilter = document.getElementById("searchFilter");
+    const allRegions = [...new Set(regionals.map(x => x.region))];
+
+    function fillSelect(select, values, placeholder) {
+      select.innerHTML = `<option value="">${placeholder}</option>` +
+        values.map(x => `<option value="${x}">${x}</option>`).join("");
+    }
+
+    fillSelect(regionFilter, allRegions, "Todas as regiões");
+    fillSelect(regionalFilter, regionals.map(x => x.name).sort((a,b) => a.localeCompare(b,"pt-BR")),
+      "Todas as Regionais");
+
+    function filtered() {
+      const region = regionFilter.value;
+      const regional = regionalFilter.value;
+      const q = searchFilter.value.trim().toLocaleLowerCase("pt-BR");
+      return regionals.filter(x =>
+        (!region || x.region === region) &&
+        (!regional || x.name === regional) &&
+        (!q || `${x.name} ${x.region}`.toLocaleLowerCase("pt-BR").includes(q))
+      );
+    }
+
+    function drawBars(element, items, active, onClick, colorMode) {
+      const max = Math.max(1, ...items.map(x => x.value));
+      element.innerHTML = items.map(x => `
+        <div class="bar-row" role="button" tabindex="0" data-label="${x.label}">
+          <span class="bar-label">${x.label}</span>
+          <span class="bar-track">
+            <span class="bar-fill" style="display:block;width:${x.value / max * 100}%;${x.label === active ? "background:#174d3b" : ""}"></span>
+          </span>
+          <span class="bar-value">${x.value}</span>
+        </div>`).join("") || '<span class="subtitle">Sem dados para exibir.</span>';
+
+      element.querySelectorAll(".bar-row").forEach(row => {
+        const activate = () => onClick(row.dataset.label);
+        row.addEventListener("click", activate);
+        row.addEventListener("keydown", event => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            activate();
+          }
+        });
+      });
+    }
+
+    function render() {
+      const rows = filtered();
+      const selectedRegions = [...new Set(rows.map(x => x.region))];
+      const uniqueRegionalCount = new Set(rows.map(x => x.name)).size;
+
+      document.getElementById("regionalCount").textContent = uniqueRegionalCount;
+      document.getElementById("regionCount").textContent = selectedRegions.length;
+
+      const techTotal = selectedRegions.reduce((sum, region) =>
+        sum + (techniciansByRegion[region] || 0), 0);
+      document.getElementById("technicianCount").textContent = techTotal;
+
+      const techItems = Object.entries(techniciansByRegion)
+        .filter(([region]) => !regionFilter.value || region === regionFilter.value)
+        .filter(([region]) => !regionalFilter.value ||
+          regionals.find(x => x.name === regionalFilter.value)?.region === region)
+        .filter(([region]) => !searchFilter.value ||
+          region.toLocaleLowerCase("pt-BR").includes(searchFilter.value.trim().toLocaleLowerCase("pt-BR")))
+        .map(([label, value]) => ({label, value}));
+      drawBars(document.getElementById("technicianChart"), techItems, regionFilter.value, label => {
+        regionFilter.value = regionFilter.value === label ? "" : label;
+        regionalFilter.value = "";
+        render();
+      });
+
+      const chainCounts = new Map();
+      rows.forEach(row => row.chains.forEach(chain =>
+        chainCounts.set(chain, (chainCounts.get(chain) || 0) + 1)));
+      const chainItems = [...chainCounts.entries()]
+        .sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"))
+        .map(([label,value]) => ({label,value}));
+      drawBars(document.getElementById("chainChart"), chainItems, "", label => {
+        const matching = rows.filter(row => row.chains.includes(label));
+        if (matching.length === 1) {
+          regionalFilter.value = matching[0].name;
+          regionFilter.value = "";
+        } else {
+          document.getElementById("results").innerHTML = matching.map(row => rowHtml(row)).join("");
+          document.getElementById("tableSummary").textContent =
+            `${matching.length} Regional(is) que citaram ${label}.`;
+          document.getElementById("tableWrap").hidden = false;
+          document.getElementById("emptyState").hidden = true;
+          return;
+        }
+        render();
+      });
+
+      const coverageRows = coverage.filter(x =>
+        (!regionFilter.value || x.region === regionFilter.value) &&
+        (!regionalFilter.value ||
+          regionals.find(r => r.name === regionalFilter.value)?.region === x.region) &&
+        (!searchFilter.value || x.region.toLocaleLowerCase("pt-BR")
+          .includes(searchFilter.value.trim().toLocaleLowerCase("pt-BR")))
+      );
+      const coverageMax = Math.max(1, ...coverageRows.map(x => x.total));
+      document.getElementById("coverageChart").innerHTML = coverageRows.map(x => `
+        <div class="coverage-row">
+          <span>${x.region}</span>
+          <span class="coverage-track"><span class="coverage-fill"
+            style="display:block;width:${x.answered / coverageMax * 100}%"></span></span>
+          <span class="coverage-value">${x.answered}/${x.total}</span>
+        </div>`).join("");
+
+      document.getElementById("results").innerHTML = rows.map(rowHtml).join("");
+      document.getElementById("tableSummary").textContent =
+        `${rows.length} Regional(is) única(s) incluída(s) no filtro.`;
+      document.getElementById("tableWrap").hidden = rows.length === 0;
+      document.getElementById("emptyState").hidden = rows.length > 0;
+    }
+
+    function rowHtml(row) {
+      return `<tr>
+        <td>${row.name}</td>
+        <td>${row.region}</td>
+        <td>${row.chains.map(x => `<span class="tag">${x}</span>`).join("")}</td>
+        <td><span class="tag">Sim</span></td>
+      </tr>`;
+    }
+
+    regionFilter.addEventListener("change", () => {
+      regionalFilter.value = "";
+      render();
+    });
+    regionalFilter.addEventListener("change", () => {
+      regionFilter.value = "";
+      render();
+    });
+    searchFilter.addEventListener("input", render);
+    document.getElementById("clearButton").addEventListener("click", () => {
+      regionFilter.value = "";
+      regionalFilter.value = "";
+      searchFilter.value = "";
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
